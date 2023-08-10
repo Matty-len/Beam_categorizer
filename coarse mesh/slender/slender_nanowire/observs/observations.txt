@@ -1,0 +1,32 @@
+Flex (pure)
+-> linear ZZ
+-> XY = ligemeget, antisymmetric
+-> parabolish XZ, YZ
+
+
+
+flex-torsh
+-> linear ZZ
+-> linear dominant, YZ/ ?(XZ)
+
+Flex (pure)
+-> linear ZZ
+-> XY = ligemeget
+-> parabolish YZ,XZ
+
+torsh (pure)
+-> scramble in ZZ
+-> strong linear for YZ or XZ
+
+longi (pure)
+ -> strong dependence on ZZ parabolish
+ -> XZ antisymmetrix or could be YZ guess because we plot along XZ, important note for the comsol
+ -> XY not matter
+
+flex (pure), but withh flaw in curve
+ -> No linear depends
+ -> parabolish, YZ, XZ.
+
+
+mode 72 er overvejenede torsional og mindre flex
+samme med 66 og 49, og 39, og 29 -> De er faktisk ikke pure

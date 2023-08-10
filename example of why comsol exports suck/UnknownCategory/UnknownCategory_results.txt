@@ -1,0 +1,48 @@
+modenumbers: 		 []
+
+freq: 		 []
+
+mass:  		 []
+
+maxop1(u): 		 []
+
+maxop1(v): 		 []
+
+maxop1(w): 		 []
+
++0 solid.eZZ: 		 []
+
+-R solid.eZZ: 		 []
+
++R solid.eZZ: 		 []
+
++0 solid.eXX: 		 []
+
+-R solid.eXX: 		 []
+
++R solid.eXX: 		 []
+
++0 solid.eYY: 		 []
+
+-R solid.eYY: 		 []
+
++R solid.eYY: 		 []
+
++0 solid.eXZ: 		 []
+
+-R solid.eXZ: 		 []
+
++R solid.eXZ: 		 []
+
++0 solid.eYZ: 		 []
+
+-R solid.eYZ: 		 []
+
++R solid.eYZ: 		 []
+
++0 solid.eXY: 		 []
+
+-R solid.eXY: 		 []
+
++R solid.eXY: 		 []
+
