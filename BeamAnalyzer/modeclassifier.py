@@ -433,20 +433,26 @@ class ModeClassifier():
                 return True, score
         return False, score    
             
-    def does_data_have_same_slope_on_both_side_of_middle_point(self, attribute = "solid.eZZ", midpoint = 0, mode = None):
+    def does_data_have_same_slope_on_both_side_of_middle_point(self, attribute:str = "solid.eZZ", midpoint:float = 0, mode:int = None) -> bool:
+        """The method extracts the feature (strain for example) versus the line expression (bottom-(d_top/2) for example)
+        1. Extract axis0 and axis1 data.
+        2. Figure out data to the left, right of the midpoint value
+        3. Make a polyfit to figure out an approximate slope on each side
+        4. Check if the approximate slopes have the same sign
+        """
+        # 1. Extract
         axis_0 = np.asarray(self.data.extract_feature(attribute=self.line_expression, eigenvalue=mode))
         axis_1 = np.asarray(self.data.extract_feature(attribute=attribute, eigenvalue=mode))
-
-        # data before middle
+        # 2. Sort into left and right
+        # data left for middle
         left_side_0 = axis_0[axis_0<midpoint]
         left_side_1 = axis_1[axis_0<midpoint] #f(x) for x > 0 --> -f(x)
 
-        #after_middle
+        #data to the right of the middle
         right_side_0 = axis_0[axis_0>midpoint]
         right_side_1 = axis_1[axis_0>midpoint] #f(x) for x > 0 --> f(x)
         
-        # find coeeficient Deltay over delta x, making linear fit on both sides
-        
+        #3.  find coeeficient Deltay over delta x, making linear fit on both sides
         slope_right, b_right = np.polyfit(right_side_0,right_side_1, 1)
         slope_left, b_left = np.polyfit(left_side_0,left_side_1, 1)
         if self.save_vizu == True:
@@ -462,11 +468,16 @@ class ModeClassifier():
                 plt.title(f"mode = {mode}, symmetric from slope approach")
             plt.savefig(fname = f"{self.foldername}/slope_test/{mode}_{attribute}.png")
             plt.close()
+        # 4. Assert that the sign on the slopes are equal.
         if np.sign(slope_left) == np.sign(slope_right): 
             return True
         return False
     
-    def pair_modes(self, absolute_tolerance = 10):
+    def pair_modes(self, absolute_tolerance: float = 10) -> None: #Internal function
+        """ The method asserts the deflection angle and pairs flexural modes in x and y category.
+        `absolute_tolerance` | `float`: refers to the absolute tolerance of how much the angles must deviate from 90 difference. Example an abs_tol = 10 means their sum
+        can be 100 or 80 degrees apart. 
+        """
         print("running pair modes")
         paired_with_previous_mode_by_angle = False
         paired_with_next_mode_by_angle = False
@@ -505,9 +516,8 @@ class ModeClassifier():
             else:
                 self.paired_mode.append('None')
 
-            #if self.paired_mode[mode_idx] # maybe get a pair list
             
-    def is_eigenfrequencies_close(self, mode_1, mode_2, rel_tol = 0.1):
+    def is_eigenfrequencies_close(self, mode_1: int, mode_2:int, rel_tol:float = 0.1) -> bool:
         if mode_1 <1 or mode_2 < 1:
             self.passed_eigenfreq_closeness.append(False)
             return False 
