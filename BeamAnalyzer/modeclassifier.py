@@ -490,45 +490,51 @@ class ModeClassifier():
             prev_mode_idx = mode_idx-1
             mode_category  = self.predicted_modes[mode_idx]
 
-            # if self.deflection_angle[next_mode_idx] > 0 and self.deflection_angle[mode_idx] < 0:
-            #     pass
-
-            # if self.deflection_angle[prev_mode_idx] < 0 and self.deflection_angle[mode_idx] > 0:
-            #     pass
-            
-
+            # Check if we should pair to previous mode
             if not mode == 1:
                 paired_with_previous_mode_by_angle = math.isclose(abs(self.deflection_angle[mode_idx]) + abs(self.deflection_angle[prev_mode_idx]), 90, abs_tol=absolute_tolerance)
-                if self.paired_mode[prev_mode_idx] == mode:
+                if self.paired_mode[prev_mode_idx] == mode: #Makes previous mode a pair
                     prev_already_paired = True
+            # Checking if we should pair to next mode
             if not mode == len(self.data.eigenvalues):
                 paired_with_next_mode_by_angle = math.isclose(abs(self.deflection_angle[mode_idx]) + abs(self.deflection_angle[next_mode_idx]), 90, abs_tol=absolute_tolerance)
-            if mode_category != "x_PureFlexural" and mode_category != "y_PureFlexural":
+            
+            # Only the flexural modes should have a pair.
+            if mode_category != "x_PureFlexural" and mode_category != "y_PureFlexural": 
                 self.paired_mode.append('None')
-            elif prev_already_paired:
+            # if the previous paired to this mode, we pair to the previous
+            elif prev_already_paired: 
                 self.paired_mode.append(mode-1)
                 prev_already_paired = False
+            # if we have 90 degress between this mode and next mode and also that our eigenfrequencies are close enough and next mode is flexural we can add it
             elif paired_with_next_mode_by_angle and self.is_eigenfrequencies_close(mode, mode+1) and self.predicted_modes[next_mode_idx] in ["x_PureFlexural", "y_PureFlexural"]:
                 self.paired_mode.append(mode+1)
                 self.mode_pairs.append([mode,mode+1])
+            # if we have 90 deg to prev mod and their eig freqs are close and that the previous mode is in flexural case we can pair them
             elif paired_with_previous_mode_by_angle and self.is_eigenfrequencies_close(mode, mode-1) and self.predicted_modes[prev_mode_idx] in ["x_PureFlexural", "y_PureFlexural"]:
                 self.paired_mode.append(mode-1)
+            # if nothing works then it is just None.
             else:
                 self.paired_mode.append('None')
 
             
     def is_eigenfrequencies_close(self, mode_1: int, mode_2:int, rel_tol:float = 0.1) -> bool:
+        """The methods asserts that the relative tolerance between the `mode_1` and `mode_2` eigenfrequencies are closer than `rel_tol`"""
+        # make sure we do not assert false cases.
         if mode_1 <1 or mode_2 < 1:
             self.passed_eigenfreq_closeness.append(False)
             return False 
+        # extract frequencies
         f1 = np.asarray(self.data.extract_feature(attribute='freq', eigenvalue=mode_1))[0]
         f2 = np.asarray(self.data.extract_feature(attribute='freq', eigenvalue=mode_2))[0]
+        # assert and add to result list
         close_enough = math.isclose(f1,f2,rel_tol=rel_tol)
         self.passed_eigenfreq_closeness.append(close_enough)
         return close_enough
 
 
     def get_list_of_detected_vibrations_present(self) -> list:
+        """Removes all duplicates from the predicted modes list and returns a overview  list of the found modes."""
         mode_list = list()
         for mode in self.data.eigenvalues:
             mode_category  = self.predicted_modes[mode-1]
@@ -536,20 +542,23 @@ class ModeClassifier():
                 mode_list.append(mode_category)
         return mode_list
 
-    def get_relative_error_compared_to_next(self) -> list:
+    def get_relative_error_compared_to_next(self) -> (list, list):
+        """Obtains a list of the modes we consider from 1 to next to last one, and the relative ifference between the 2."""
         rel_diff_list = list()
         considered_modes = list()
         for mode in self.data.eigenvalues:
             if mode == len(self.data.eigenvalues):
                 continue
             considered_modes.append(mode)
-            this = self.data.extract_feature(attribute='freq', eigenvalue=mode)[0]
-            next = self.data.extract_feature(attribute='freq', eigenvalue=mode+1)[0]
-            rel_difference = (next-this)#/this
+            this_mode_freq = self.data.extract_feature(attribute='freq', eigenvalue=mode)[0]
+            next_mode_freq = self.data.extract_feature(attribute='freq', eigenvalue=mode+1)[0]
+            rel_difference = (next_mode_freq-this_mode_freq)/this_mode_freq
             rel_diff_list.append(rel_difference)
         return considered_modes, rel_diff_list
     
-    def get_absolute_errors_on_angle_from_90(self):
+    def get_absolute_errors_on_angle_from_90(self) -> (list, list): #list of pair index and list of absolute error on the angle
+        """Obtains a list of the pair indeces for example 1 marking the first pair, if they are a pair, and also the absolute difference in angle between them, could be
+        -5 if their sum adds up to 95 degrees."""
         pair_idx = []
         abs_error_on_angle = []
         start_idx = 1
@@ -561,7 +570,8 @@ class ModeClassifier():
             start_idx += 1
         return pair_idx, abs_error_on_angle
     
-    def plot_absolute_error_on_angle_from_90(self, filename: str = None):
+    def plot_absolute_error_on_angle_from_90(self, filename: str = None) -> None:
+        """Plots the absolute error on the angle versus the pair number for example [1,2] could be pair 1 and [3,4] could be pair 2."""
         pair_idx, abs_error_on_angle = self.get_absolute_errors_on_angle_from_90()
         fig, ax = plt.subplots(1,1)
         ax.plot(pair_idx, abs_error_on_angle, '-.')
@@ -570,12 +580,13 @@ class ModeClassifier():
         if filename is not None:
             fig.savefig(f"{self.foldername}/{filename}.png")
 
-    def plot_mode_num_and_freq(self):
-        #for mode in self.data.eigenvalues:
+    def plot_mode_num_and_freq(self) -> None:
+        """Plots the eigenvalues vs modes numbers, where they belong to certain classes like PureTorsional and are withing the first 0 to up_lim1 of the modes."""
         crit = np.asarray(self.predicted_modes)
         x = np.asarray(self.data.eigenvalues)
         y = np.asarray(self.frequencies)
         fig, ax = plt.subplots(1,1)
+        #plot variables
         low_lim = 0
         up_lim1 = 10
         up_lim2 = 5
@@ -585,12 +596,11 @@ class ModeClassifier():
         ax.plot(x[crit == 'y_PureFlexural'][0:up_lim1], y[crit == 'y_PureFlexural'][0:up_lim1], 'o', color = 'b')
         ax.plot(x[crit == 'PureTorsional'][0:up_lim2], y[crit == 'PureTorsional'][0:up_lim2], 'o', color = 'g')
         ax.plot(x[crit == 'PureLongitudinal'][0:up_lim3], y[crit == 'PureLongitudinal'][0:up_lim3], 'o', color = 'r')
-        #ax.plot(x[crit == 'FlexuralTorsional'][0:up_lim4], y[crit == 'FlexuralTorsional'][0:up_lim4], 'o', color = 'y')
-        
-        #{'x_PureFlexural':[],'y_PureFlexural':[], 'PureTorsional':[], 'UnknownCategory': [],'FlexuralTorsional': [], 'PureLongitudinal': []}
 
 
-    def get_pairs_relative_error_on_frequency(self):
+    def get_pairs_relative_error_on_frequency(self) -> (list, list):
+        """Gets the relative errors on the pairs in percentage returns it aswell as a list of pair numbers, so mode [1,2] is pair 1 if they are flex
+        and [3,4] is pair 2 if they are flexural"""
         pair_idx = []
         rel_error_on_pairs_percentage = []
         start_idx = 1
@@ -602,7 +612,8 @@ class ModeClassifier():
             start_idx += 1
         return pair_idx, rel_error_on_pairs_percentage
 
-    def plot_pair_relative_error(self, filename: str = None):
+    def plot_pair_relative_error(self, filename: str = None)-> None:
+        """Plots the pairnumber versus the relative error on frequencies given in percentage"""
         pairnum, rel_errors = self.get_pairs_relative_error_on_frequency()
         fig, axs = plt.subplots(1, 1)
         axs.plot(pairnum, rel_errors, '-.')
@@ -669,7 +680,6 @@ def find_nearest(array,value):
         return array[idx]
     
 
-    
 # predominantly torsional
 
 # predominnantly rotational
